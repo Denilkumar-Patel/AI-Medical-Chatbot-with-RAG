@@ -3,7 +3,7 @@
 An **AI-powered medical assistant** that leverages **Retrieval-Augmented Generation (RAG)** to deliver accurate, context-aware responses to healthcare queries.  
 The chatbot combines **document retrieval** with **Large Language Models (LLMs)** to ensure **factual, reliable, and source-backed answers**.  
 
-🚀 Built with **LangChain, FAISS, Hugging Face embeddings, and Groq-hosted LLaMA-4 Maverick**, and deployed using **Streamlit**.  
+🚀 Built with **LangChain, FAISS, Hugging Face embeddings, and Groq-hosted LLaMA-3 8B Instruct**, and deployed using **Streamlit**.  
 
 ---
 
@@ -48,7 +48,7 @@ Unlike traditional chatbots, it integrates **vector databases + LLMs**, ensuring
   - Streamlit  
   - Hugging Face Transformers  
 - **Embeddings:** `sentence-transformers/all-MiniLM-L6-v2`  
-- **LLM Backend:** Groq-hosted `meta-llama/llama-4-maverick-17b-128e-instruct`  
+- **LLM Backend:** Groq-hosted `LLaMA-3 8B Instruct`  
 - **Deployment:** Streamlit  
 
 ---
@@ -60,6 +60,9 @@ flowchart TD
     B --> C[LangChain RAG Pipeline]
     C --> D[FAISS Vector Store]
     D --> E[Relevant Context Retrieved]
-    E --> F[Groq LLaMA-4 Maverick LLM]
+    E --> F[Groq LLaMA-3 8B Instruct LLM]
     F --> G[Context-aware Response]
     G --> B
+
+---
+## Project Structure
