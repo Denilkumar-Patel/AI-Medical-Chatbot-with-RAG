@@ -1,1 +1,1 @@
-#An AI-powered medical assistant that answers health-related queries using Retrieval-Augmented Generation (RAG). Built with LangChain, FAISS, Hugging Face embeddings, and Groq-hosted LLaMA-4 Maverick, deployed on Streamlit for an interactive experience.# AI-Medical-Chatbot-with-RAG
+# An AI-powered medical assistant that answers health-related queries using Retrieval-Augmented Generation (RAG). Built with LangChain, FAISS, Hugging Face embeddings, and Groq-hosted LLaMA-4 Maverick, deployed on Streamlit for an interactive experience.# AI-Medical-Chatbot-with-RAG
