@@ -63,6 +63,3 @@ flowchart TD
     E --> F[Groq LLaMA-3 8B Instruct LLM]
     F --> G[Context-aware Response]
     G --> B
-
----
-## Project Structure
