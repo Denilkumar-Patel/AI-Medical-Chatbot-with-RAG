@@ -22,12 +22,6 @@ def create_chunks(extracted_data):
 
 text_chunks=create_chunks(extracted_data=documents)
 
-#print("Length of Text Chunks: ", len(text_chunks))
-# print("\n\nthis is the chunk: ")  # Print first 500 characters of the first chunk
-# print(text_chunks[108].page_content[:500])  # Print first 500 characters of the first chunk
-
-
-# Step 3: Create Vector Embeddings 
 
 def get_embedding_model():
     embedding_model=HuggingFaceEmbeddings(model_name="sentence-transformers/all-MiniLM-L6-v2")
