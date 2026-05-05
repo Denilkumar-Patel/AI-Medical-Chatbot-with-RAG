@@ -13,10 +13,6 @@ load_dotenv(find_dotenv())
 
 HF_TOKEN=os.environ.get("HF_TOKEN")
 HUGGINGFACE_REPO_ID="mistralai/Mistral-7B-Instruct-v0.3"
-## Uncomment the following files if you're not using pipenv as your virtual environment manager
-#from dotenv import load_dotenv, find_dotenv
-#load_dotenv(find_dotenv())
-
 
 DB_FAISS_PATH="vectorstore/db_faiss"
 @st.cache_resource
@@ -67,11 +63,6 @@ def main():
                 Start the answer directly. No small talk please.
                 """
         
-        #HUGGINGFACE_REPO_ID="mistralai/Mistral-7B-Instruct-v0.3" # PAID
-        #HF_TOKEN=os.environ.get("HF_TOKEN")  
-
-        #TODO: Create a Groq API key and add it to .env file
-        
         try: 
             vectorstore=get_vectorstore()
             if vectorstore is None:
@@ -94,7 +85,7 @@ def main():
             result=response["result"]
             source_documents=response["source_documents"]
             result_to_show=result+"\nSource Docs:\n"+str(source_documents)
-            #response="Hi, I am MediBot!"
+            
             st.chat_message('assistant').markdown(result_to_show)
             st.session_state.messages.append({'role':'assistant', 'content': result_to_show})
 
