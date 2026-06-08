@@ -1,96 +1,73 @@
-import os
+from pathlib import Path
+
 import streamlit as st
 
-from langchain_huggingface import HuggingFaceEmbeddings
-from langchain.chains import RetrievalQA
-
-from langchain_community.vectorstores import FAISS
-from langchain_core.prompts import PromptTemplate
-from langchain_huggingface import HuggingFaceEndpoint
-from langchain_groq import ChatGroq
-from dotenv import load_dotenv, find_dotenv
-load_dotenv(find_dotenv())
-
-HF_TOKEN=os.environ.get("HF_TOKEN")
-HUGGINGFACE_REPO_ID="mistralai/Mistral-7B-Instruct-v0.3"
-
-DB_FAISS_PATH="vectorstore/db_faiss"
-@st.cache_resource
-def get_vectorstore():
-    embedding_model=HuggingFaceEmbeddings(model_name='sentence-transformers/all-MiniLM-L6-v2')
-    db=FAISS.load_local(DB_FAISS_PATH, embedding_model, allow_dangerous_deserialization=True)
-    return db
+from rag_core import (
+    DB_FAISS_PATH,
+    build_qa_chain,
+    format_source_documents,
+    load_vectorstore,
+    validate_runtime_config,
+)
 
 
-def set_custom_prompt(custom_prompt_template):
-    prompt=PromptTemplate(template=custom_prompt_template, input_variables=["context", "question"])
-    return prompt
+st.set_page_config(page_title="AI Medical Chatbot with RAG", layout="centered")
+st.title("AI Medical Chatbot with RAG")
+st.caption("Educational answers grounded in the bundled medical knowledge base.")
 
 
-def load_llm(huggingface_repo_id, HF_TOKEN):
-    llm=HuggingFaceEndpoint(
-        repo_id=huggingface_repo_id,
-        temperature=0.5,
-        model_kwargs={"token":HF_TOKEN,
-                      "max_length":"512"}
-    )
-    return llm
+@st.cache_resource(show_spinner="Loading FAISS vector store...")
+def cached_vectorstore(path: str):
+    return load_vectorstore(Path(path))
 
 
-def main():
-    st.title("Ask Chatbot!")
-
-    if 'messages' not in st.session_state:
+with st.sidebar:
+    st.subheader("Retrieval")
+    top_k = st.slider("Sources", min_value=2, max_value=6, value=4)
+    st.write(f"Vector store: `{DB_FAISS_PATH}`")
+    if st.button("Clear chat"):
         st.session_state.messages = []
+        st.rerun()
 
-    for message in st.session_state.messages:
-        st.chat_message(message['role']).markdown(message['content'])
+config_issues = validate_runtime_config()
+if config_issues:
+    for issue in config_issues:
+        st.error(issue)
+    st.info("Configure secrets and build the FAISS index before deploying.")
+    st.stop()
 
-    prompt=st.chat_input("Pass your prompt here")
+if "messages" not in st.session_state:
+    st.session_state.messages = [
+        {
+            "role": "assistant",
+            "content": "Ask a medical education question. I will answer only from the indexed source material.",
+        }
+    ]
 
-    if prompt:
-        st.chat_message('user').markdown(prompt)
-        st.session_state.messages.append({'role':'user', 'content': prompt})
+for message in st.session_state.messages:
+    st.chat_message(message["role"]).markdown(message["content"])
 
-        CUSTOM_PROMPT_TEMPLATE = """
-                Use the pieces of information provided in the context to answer user's question.
-                If you dont know the answer, just say that you dont know, dont try to make up an answer. 
-                Dont provide anything out of the given context
+prompt = st.chat_input("Ask a question about the indexed medical reference")
 
-                Context: {context}
-                Question: {question}
+if prompt:
+    st.chat_message("user").markdown(prompt)
+    st.session_state.messages.append({"role": "user", "content": prompt})
 
-                Start the answer directly. No small talk please.
-                """
-        
-        try: 
-            vectorstore=get_vectorstore()
-            if vectorstore is None:
-                st.error("Failed to load the vector store")
+    try:
+        vectorstore = cached_vectorstore(str(DB_FAISS_PATH))
+        qa_chain = build_qa_chain(vectorstore, k=top_k)
+        response = qa_chain.invoke({"query": prompt})
 
-            qa_chain = RetrievalQA.from_chain_type(
-                llm=ChatGroq(
-                    model_name="meta-llama/llama-4-maverick-17b-128e-instruct",  # free, fast Groq-hosted model
-                    temperature=0.0,
-                    groq_api_key=os.environ["GROQ_API_KEY"],
-                ),
-                chain_type="stuff",
-                retriever=vectorstore.as_retriever(search_kwargs={'k':3}),
-                return_source_documents=True,
-                chain_type_kwargs={'prompt': set_custom_prompt(CUSTOM_PROMPT_TEMPLATE)}
-            )
+        answer = response.get("result", "I do not know based on the available sources.")
+        sources = format_source_documents(response.get("source_documents", []))
+        assistant_message = f"{answer}\n\n**Sources**\n{sources}"
 
-            response=qa_chain.invoke({'query':prompt})
+    except Exception as exc:
+        assistant_message = (
+            "The chatbot could not complete this request. "
+            "Check the deployment logs for model, key, or vector-store errors."
+        )
+        st.exception(exc)
 
-            result=response["result"]
-            source_documents=response["source_documents"]
-            result_to_show=result+"\nSource Docs:\n"+str(source_documents)
-            
-            st.chat_message('assistant').markdown(result_to_show)
-            st.session_state.messages.append({'role':'assistant', 'content': result_to_show})
-
-        except Exception as e:
-            st.error(f"Error: {str(e)}")
-
-if __name__ == "__main__":
-    main()
+    st.chat_message("assistant").markdown(assistant_message)
+    st.session_state.messages.append({"role": "assistant", "content": assistant_message})
